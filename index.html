@@ -312,6 +312,24 @@
     <iframe id="previewFrame" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
 </div>
 
+<!-- ── JSON 붙여넣기 모달 ── -->
+<div id="jsonPasteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:28px;max-width:560px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,0.2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <h3 style="font-size:1.05rem;font-weight:800;color:#1a1a1a;">📥 JSON 붙여넣기</h3>
+            <button id="jsonPasteCloseBtn" style="width:30px;height:30px;border-radius:50%;border:1px solid #e0e0e0;background:#fff;font-size:0.9rem;cursor:pointer;color:#666;">✕</button>
+        </div>
+        <p style="font-size:0.82rem;color:#888;margin-bottom:14px;">내보낸 JSON 텍스트를 아래에 붙여넣고 적용하세요. <strong>현재 작업 내용이 교체</strong>됩니다.</p>
+        <textarea id="jsonPasteInput" rows="10" placeholder="여기에 JSON 텍스트를 붙여넣으세요 (Ctrl+V)..."
+            style="width:100%;padding:12px;border:1.5px solid #e8e0e0;border-radius:10px;font-size:0.78rem;font-family:'DM Sans',monospace;resize:vertical;outline:none;color:#333;line-height:1.5;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#A50034'" onblur="this.style.borderColor='#e8e0e0'"></textarea>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+            <button id="jsonPasteApplyBtn" style="flex:1;padding:11px;background:#A50034;color:#fff;font-size:0.9rem;font-weight:700;border:none;border-radius:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">✅ 적용하기</button>
+            <button id="jsonPasteCancelBtn" style="padding:11px 20px;background:#f5f5f5;color:#666;font-size:0.9rem;border:none;border-radius:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">취소</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── 시작 가이드 팝업 ── -->
 <div id="guideModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:20px;max-width:480px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,0.25);overflow:hidden;">
@@ -362,11 +380,11 @@
                     </div>
                     <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:#555;">
                         <span style="color:#A50034;font-weight:700;flex-shrink:0;">📤 JSON 내보내기</span>
-                        <span>작업 내용을 <strong>파일로 저장</strong>해두는 가장 안전한 방법이에요. 정기적으로 내보내기를 권장해요.</span>
+                        <span>작업 내용을 <strong>클립보드에 복사</strong>해 메모장 등에 붙여넣어 보관하세요. 가장 안전한 백업 방법이에요.</span>
                     </div>
                     <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:#555;">
-                        <span style="color:#1e3a5f;font-weight:700;flex-shrink:0;">📥 JSON 불러오기</span>
-                        <span>내보낸 파일을 다시 불러와 작업을 이어갈 수 있어요.</span>
+                        <span style="color:#5a1a2a;font-weight:700;flex-shrink:0;">📥 JSON 붙여넣기</span>
+                        <span>보관해 둔 JSON 텍스트를 붙여넣어 작업을 복원할 수 있어요.</span>
                     </div>
                 </div>
             </div>
@@ -392,8 +410,7 @@
     <button class="tb-btn" id="tbLoadBtn" style="background:#1e3a5f;color:#fff;">📂 불러오기</button>
     <div class="tb-divider"></div>
     <button class="tb-btn" id="tbExportBtn" style="background:#A50034;color:#fff;">📤 JSON 내보내기</button>
-    <button class="tb-btn" id="tbImportBtn" style="background:#5a1a2a;color:#fff;">📥 JSON 불러오기</button>
-    <input type="file" id="jsonImportInput" accept=".json" style="display:none;">
+    <button class="tb-btn" id="tbImportBtn" style="background:#5a1a2a;color:#fff;">📥 JSON 붙여넣기</button>
     <div class="tb-divider"></div>
     <button class="tb-btn" id="tbPreviewBtn" style="background:#5c3d8f;color:#fff;">👁 미리보기</button>
 
@@ -1526,75 +1543,92 @@ function closePreview() {
     document.getElementById('previewModal').style.display = 'none';
 }
 
-// ── JSON 내보내기 / 불러오기 ──
+// ── JSON 내보내기 / 붙여넣기 ──
 function exportJSON() {
     const data = collectCurrentData();
-    const title = document.getElementById('courseTitle')?.textContent.trim().replace(/[^a-zA-Z0-9가-힣]/g,'_') || '과정안내문';
-    const now = new Date();
-    const dt = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `(편집기백업)${title}_${dt}.json`;
-    a.click();
-    showToast('📤 JSON 내보내기 완료');
+    const json = JSON.stringify(data, null, 2);
+
+    // 클립보드 복사 시도
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(json).then(() => {
+            showToast('📤 JSON이 클립보드에 복사됐습니다! 메모장 등에 붙여넣어 보관하세요.');
+        }).catch(() => {
+            fallbackExport(json);
+        });
+    } else {
+        fallbackExport(json);
+    }
+}
+
+function fallbackExport(json) {
+    // 클립보드 안 될 때: 모달에 텍스트 표시해서 복사하게
+    const modal = document.getElementById('jsonPasteModal');
+    const ta = document.getElementById('jsonPasteInput');
+    ta.value = json;
+    ta.placeholder = '아래 내용을 전체 선택(Ctrl+A) 후 복사(Ctrl+C)하여 보관하세요.';
+    modal.style.display = 'flex';
+    setTimeout(() => { ta.focus(); ta.select(); }, 100);
+    document.getElementById('jsonPasteApplyBtn').style.display = 'none';
 }
 
 function importJSON() {
-    document.getElementById('jsonImportInput').click();
+    const modal = document.getElementById('jsonPasteModal');
+    const ta = document.getElementById('jsonPasteInput');
+    ta.value = '';
+    ta.placeholder = '여기에 JSON 텍스트를 붙여넣으세요 (Ctrl+V)...';
+    document.getElementById('jsonPasteApplyBtn').style.display = '';
+    modal.style.display = 'flex';
+    setTimeout(() => ta.focus(), 100);
 }
 
-function handleJSONImport(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!confirm(`"${file.name}" 파일을 불러올까요?\n현재 작업 내용이 교체됩니다.`)) {
-        e.target.value = '';
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        try {
-            const data = JSON.parse(ev.target.result);
-            // EDITABLE_IDS 복원
-            EDITABLE_IDS.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && data[id] !== undefined) el.innerHTML = data[id];
+function closeJsonPasteModal() {
+    document.getElementById('jsonPasteModal').style.display = 'none';
+    document.getElementById('jsonPasteInput').value = '';
+}
+
+function applyJsonPaste() {
+    const text = document.getElementById('jsonPasteInput').value.trim();
+    if (!text) { showToast('JSON을 붙여넣어 주세요.'); return; }
+    if (!confirm('현재 작업 내용이 교체됩니다. 계속할까요?')) return;
+    try {
+        const data = JSON.parse(text);
+        EDITABLE_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && data[id] !== undefined) el.innerHTML = data[id];
+        });
+        if (data['ttDays']) { try { ttDays = JSON.parse(data['ttDays']); activeDayIdx = data['activeDayIdx'] || 0; } catch(e) {} }
+        if (data['ttColVisible']) { try { Object.assign(ttColVisible, JSON.parse(data['ttColVisible'])); } catch(e) {} }
+        if (data['noticeCards']) { try { noticeCards = JSON.parse(data['noticeCards']); } catch(e) {} }
+        if (data['contactCards']) { try { contactCards = JSON.parse(data['contactCards']); } catch(e) {} }
+        if (data['faqList']) { document.getElementById('faqList').innerHTML = data['faqList']; initFaqEvents(); }
+        if (data['surveyLink']) { document.getElementById('surveyLinkVal').value = data['surveyLink']; updateSurveyBtn(); }
+        if (data['headerBg']) { const h = document.querySelector('header'); if (h) h.style.background = data['headerBg']; }
+        if (data['_sections']) {
+            TOGGLE_IDS.forEach(sid => {
+                const el = document.getElementById(sid);
+                if (!el) return;
+                const hidden = data['_sections'][sid] === true;
+                el.classList.toggle('sec-hidden', hidden);
+                const btn = el.querySelector('.section-vis-btn');
+                if (btn) btn.textContent = hidden ? '🚫' : '👁';
+                if (sid === 'drawer-btn-section') {
+                    const tabBtn = document.getElementById('tabDrawerBtn');
+                    if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+                }
             });
-            if (data['ttDays']) { try { ttDays = JSON.parse(data['ttDays']); activeDayIdx = data['activeDayIdx'] || 0; } catch(e) {} }
-            if (data['ttColVisible']) { try { Object.assign(ttColVisible, JSON.parse(data['ttColVisible'])); } catch(e) {} }
-            if (data['noticeCards']) { try { noticeCards = JSON.parse(data['noticeCards']); } catch(e) {} }
-            if (data['contactCards']) { try { contactCards = JSON.parse(data['contactCards']); } catch(e) {} }
-            if (data['faqList']) { document.getElementById('faqList').innerHTML = data['faqList']; initFaqEvents(); }
-            if (data['surveyLink']) { document.getElementById('surveyLinkVal').value = data['surveyLink']; updateSurveyBtn(); }
-            if (data['headerBg']) { const h = document.querySelector('header'); if (h) h.style.background = data['headerBg']; }
-            if (data['_sections']) {
-                TOGGLE_IDS.forEach(sid => {
-                    const el = document.getElementById(sid);
-                    if (!el) return;
-                    const hidden = data['_sections'][sid] === true;
-                    el.classList.toggle('sec-hidden', hidden);
-                    const btn = el.querySelector('.section-vis-btn');
-                    if (btn) btn.textContent = hidden ? '🚫' : '👁';
-                    if (sid === 'drawer-btn-section') {
-                        const tabBtn = document.getElementById('tabDrawerBtn');
-                        if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
-                    }
-                });
-            }
-            syncAll();
-            renderTtTabs();
-            renderTtPanel(activeDayIdx);
-            renderNoticeCards();
-            renderContactCards();
-            if (isEditMode) { enableTableEdit(true); applyNoticeCardEditMode(); applyContactCardEditMode(); }
-            else restorePlaceholders();
-            showToast(`📥 "${file.name}" 불러오기 완료`);
-        } catch(err) {
-            alert('JSON 파일을 읽는 중 오류가 발생했습니다.\n' + err.message);
         }
-        e.target.value = '';
-    };
-    reader.readAsText(file, 'utf-8');
+        syncAll();
+        renderTtTabs();
+        renderTtPanel(activeDayIdx);
+        renderNoticeCards();
+        renderContactCards();
+        if (isEditMode) { enableTableEdit(true); applyNoticeCardEditMode(); applyContactCardEditMode(); }
+        else restorePlaceholders();
+        closeJsonPasteModal();
+        showToast('📥 불러오기 완료!');
+    } catch(err) {
+        alert('올바른 JSON 형식이 아닙니다.\n' + err.message);
+    }
 }
 
 // ── 시작 가이드 팝업 ──
@@ -2464,6 +2498,9 @@ function bindButtons() {
         ['tbDownloadBtn', downloadHTML],
         ['tbExportBtn', exportJSON],
         ['tbImportBtn', importJSON],
+        ['jsonPasteCloseBtn',  closeJsonPasteModal],
+        ['jsonPasteCancelBtn', closeJsonPasteModal],
+        ['jsonPasteApplyBtn',  applyJsonPaste],
         ['previewCloseBtn', closePreview],
         ['tbLoadBtn',     openLoadModal],
         ['drawerCloseBtn', closeDrawer],
@@ -2487,9 +2524,6 @@ function bindButtons() {
 
 function initPage() {
     bindButtons();
-    // JSON import input 이벤트
-    document.getElementById('jsonImportInput')?.addEventListener('change', handleJSONImport);
-
     loadFromStorage();
     syncAll();
     renderTtTabs();
