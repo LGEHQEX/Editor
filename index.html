@@ -311,6 +311,22 @@
 </head>
 <body>
 
+<!-- ── 미리보기 모달 ── -->
+<div id="previewModal" style="display:none;position:fixed;inset:0;z-index:9995;flex-direction:column;">
+    <!-- 상단 바 -->
+    <div style="flex-shrink:0;background:#1a1a1a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:0.85rem;font-weight:700;color:#fff;">👁 미리보기</span>
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);">수강생에게 보이는 화면입니다</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <button id="previewCloseBtn" style="padding:7px 18px;background:rgba(255,255,255,0.1);color:#fff;font-size:0.82rem;font-weight:600;border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">✕ 닫기 (편집으로 돌아가기)</button>
+        </div>
+    </div>
+    <!-- iframe -->
+    <iframe id="previewFrame" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
+</div>
+
 <!-- ── 시작 가이드 팝업 ── -->
 <div id="guideModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:20px;max-width:480px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,0.25);overflow:hidden;">
@@ -368,6 +384,8 @@
     <button class="tb-btn tb-btn-success" id="tbSaveBtn">💾 임시저장</button>
     <button class="tb-btn" id="tbNameSaveBtn" style="background:#2d6a4f;color:#fff;">📁 저장</button>
     <button class="tb-btn" id="tbLoadBtn" style="background:#1e3a5f;color:#fff;">📂 불러오기</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn" id="tbPreviewBtn" style="background:#5c3d8f;color:#fff;">👁 미리보기</button>
     <div class="tb-divider"></div>
     <button class="tb-btn tb-btn-primary" id="tbDownloadBtn">⬇️ HTML 저장</button>
     <div class="tb-divider"></div>
@@ -1432,6 +1450,67 @@ function restorePlaceholders() {
     });
 }
 
+// ── 미리보기 ──
+function openPreview() {
+    savePanelToData(activeDayIdx);
+    removePlaceholdersForSave();
+
+    // 현재 DOM을 복제해서 편집 UI 제거
+    const clone = document.documentElement.cloneNode(true);
+
+    // 편집 전용 요소 제거
+    ['editToolbar','editToggleBtn','saveToast','syncNotice',
+     'scrollTopBtn','tt-add-day-wrap','ttDetailModal',
+     'saveNameModal','loadModal','emojiModal','guideModal','previewModal',
+     'faqPresetModal','add-notice-card-wrap','btnAddFaq','btnFaqPreset','btnAddContact'
+    ].forEach(id => clone.querySelector(`#${id}`)?.remove());
+
+    // 편집 컨트롤 버튼 제거
+    clone.querySelectorAll('.section-vis-btn,.notice-card-vis,.notice-card-del,.contact-card-del,.tt-row-ctrl,.faq-item-ctrl,.category-picker,.tt-tab-del').forEach(el => el.remove());
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('.is-placeholder').forEach(el => { el.innerHTML = ''; el.style.opacity = ''; el.style.fontStyle = ''; });
+    clone.querySelector('#surveyLinkInput')?.style && (clone.querySelector('#surveyLinkInput').style.display = 'none');
+
+    // 시간표: 탭 없이 전체 일차 펼치기
+    const clonePanels = clone.querySelector('#tt-panels');
+    const cloneTabBar = clone.querySelector('#tt-tab-bar');
+    if (clonePanels && cloneTabBar) {
+        cloneTabBar.style.display = 'none';
+        const visCols = TT_COLS.filter(c => c.always || ttColVisible[c.key]);
+        clonePanels.innerHTML = ttDays.map((day, idx) => {
+            const color = DAY_COLORS[idx % DAY_COLORS.length];
+            const thCols = visCols.map(c => `<th style="width:${c.width};">${c.label}</th>`).join('');
+            const rows = day.rows.map(row => `
+                <tr${row.isBreak?' class="is-break"':''}>
+                    <td class="tt-time">${row.time}</td>
+                    ${visCols.map(c=>`<td style="${c.key==='subject'?'font-weight:600;color:#1a1a1a;':'color:#6b6b6b;font-size:0.84rem;'}">${row[c.key]||''}</td>`).join('')}
+                </tr>`).join('');
+            return `<div class="tt-table-wrap" style="margin-bottom:20px;">
+                <div class="tt-table-header" style="background:linear-gradient(135deg,${color},${color}bb);">
+                    <h3 style="font-size:1.05rem;font-weight:800;color:#fff;">${day.label} <span style="font-size:0.76rem;font-weight:400;opacity:0.7;">일정</span></h3>
+                    <span style="font-size:0.78rem;font-weight:700;background:rgba(255,255,255,0.2);padding:4px 14px;border-radius:20px;color:#fff;">DAY ${idx+1}</span>
+                </div>
+                <table class="tt-table">
+                    <thead><tr><th style="width:16%;">시간</th>${thCols}</tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+        }).join('');
+    }
+
+    // iframe에 렌더링
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const frame = document.getElementById('previewFrame');
+    frame.srcdoc = html;
+
+    document.getElementById('previewModal').style.display = 'flex';
+    restorePlaceholders();
+}
+
+function closePreview() {
+    document.getElementById('previewModal').style.display = 'none';
+}
+
 // ── 시작 가이드 팝업 ──
 function showGuideModal() {
     if (localStorage.getItem('editor-guide-shown') === 'true') return;
@@ -2297,7 +2376,8 @@ function bindButtons() {
         ['editExitBtn',   toggleEditMode],
         ['tbSaveBtn',     saveToStorage],
         ['tbDownloadBtn', downloadHTML],
-        ['tbNameSaveBtn', openSaveNameModal],
+        ['tbPreviewBtn',  openPreview],
+        ['previewCloseBtn', closePreview],
         ['tbLoadBtn',     openLoadModal],
         ['drawerCloseBtn', closeDrawer],
         ['drawerOverlay',  closeDrawer],
