@@ -44,23 +44,8 @@
         }
 
         /* ── EDIT TOOLBAR ── */
-        .edit-toolbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 9990;
-            background: #1a1a1a;
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            flex-wrap: wrap;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-        }
-        .edit-toolbar.active { display: flex; }
-        /* 툴바 열릴 때 본문 밀림 방지 */
-        body.edit-mode { padding-top: 48px; }
+        /* mainToolbar는 항상 표시 - body 상단 여백 항상 적용 */
+        body { padding-top: 46px; }
         .tb-label { font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; font-family: 'DM Sans', sans-serif; }
         .tb-btn {
             padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 700;
@@ -366,6 +351,26 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 저장 방식 안내 -->
+            <div style="background:#f8f8f8;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+                <div style="font-size:0.82rem;font-weight:700;color:#1a1a1a;margin-bottom:10px;">⚠️ 저장 방식 안내 (꼭 읽어주세요)</div>
+                <div style="display:flex;flex-direction:column;gap:7px;">
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:#555;">
+                        <span style="color:#1a8a4a;font-weight:700;flex-shrink:0;">💾 임시저장 / 📁 저장</span>
+                        <span>브라우저 내부(localStorage)에 저장돼요. <strong>브라우저 데이터 전체 삭제 시 소실</strong>될 수 있어요.</span>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:#555;">
+                        <span style="color:#A50034;font-weight:700;flex-shrink:0;">📤 JSON 내보내기</span>
+                        <span>작업 내용을 <strong>파일로 저장</strong>해두는 가장 안전한 방법이에요. 정기적으로 내보내기를 권장해요.</span>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:#555;">
+                        <span style="color:#1e3a5f;font-weight:700;flex-shrink:0;">📥 JSON 불러오기</span>
+                        <span>내보낸 파일을 다시 불러와 작업을 이어갈 수 있어요.</span>
+                    </div>
+                </div>
+            </div>
+
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
                 <input type="checkbox" id="guideNoShow" style="width:16px;height:16px;accent-color:var(--lg-red);cursor:pointer;">
                 <label for="guideNoShow" style="font-size:0.82rem;color:#888;cursor:pointer;">다음부터 이 안내 보지 않기</label>
@@ -377,23 +382,33 @@
     </div>
 </div>
 
-<!-- ── 편집 툴바 ── -->
-<div class="edit-toolbar" id="editToolbar">
-    <span class="tb-label">✏️ 편집 중</span>
+<!-- ── 상단 고정 툴바 (항상 표시) ── -->
+<div id="mainToolbar" style="position:fixed;top:0;left:0;right:0;z-index:9990;background:#1a1a1a;display:flex;align-items:center;gap:6px;padding:8px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.3);flex-wrap:wrap;">
+    <!-- 항상 보이는 버튼들 -->
+    <span class="tb-label" style="font-size:0.78rem;opacity:0.5;margin-right:4px;">📄 과정안내문 편집기</span>
     <div class="tb-divider"></div>
     <button class="tb-btn tb-btn-success" id="tbSaveBtn">💾 임시저장</button>
     <button class="tb-btn" id="tbNameSaveBtn" style="background:#2d6a4f;color:#fff;">📁 저장</button>
     <button class="tb-btn" id="tbLoadBtn" style="background:#1e3a5f;color:#fff;">📂 불러오기</button>
     <div class="tb-divider"></div>
+    <button class="tb-btn" id="tbExportBtn" style="background:#A50034;color:#fff;">📤 JSON 내보내기</button>
+    <button class="tb-btn" id="tbImportBtn" style="background:#5a1a2a;color:#fff;">📥 JSON 불러오기</button>
+    <input type="file" id="jsonImportInput" accept=".json" style="display:none;">
+    <div class="tb-divider"></div>
     <button class="tb-btn" id="tbPreviewBtn" style="background:#5c3d8f;color:#fff;">👁 미리보기</button>
-    <div class="tb-divider"></div>
-    <button class="tb-btn tb-btn-primary" id="tbDownloadBtn">⬇️ HTML 저장</button>
-    <div class="tb-divider"></div>
-    <span class="tb-label" style="font-size:0.7rem;opacity:0.7;">헤더색상</span>
-    <div id="headerColorPresets" style="display:flex;gap:5px;align-items:center;"></div>
-    <input type="color" id="headerColorPicker" title="직접 선택" style="width:26px;height:26px;border:none;border-radius:6px;cursor:pointer;padding:1px;background:none;" value="#A50034">
-    <div class="tb-divider"></div>
-    <button class="tb-btn tb-btn-secondary" id="editExitBtn">✕ 편집 종료</button>
+
+    <!-- 편집 모드에서만 보이는 영역 -->
+    <div id="editOnlyArea" style="display:none;align-items:center;gap:6px;">
+        <div class="tb-divider"></div>
+        <span class="tb-label" style="font-size:0.75rem;color:var(--lg-red);">✏️ 편집 중</span>
+        <button class="tb-btn tb-btn-primary" id="tbDownloadBtn">⬇️ HTML 저장</button>
+        <div class="tb-divider"></div>
+        <span class="tb-label" style="font-size:0.7rem;opacity:0.7;">헤더색상</span>
+        <div id="headerColorPresets" style="display:flex;gap:5px;align-items:center;"></div>
+        <input type="color" id="headerColorPicker" title="직접 선택" style="width:26px;height:26px;border:none;border-radius:6px;cursor:pointer;padding:1px;background:none;" value="#A50034">
+        <div class="tb-divider"></div>
+        <button class="tb-btn tb-btn-secondary" id="editExitBtn">✕ 편집 종료</button>
+    </div>
 </div>
 
 <!-- ── 저장 이름 모달 ── -->
@@ -1163,11 +1178,11 @@ function printConfirmation() {
 function toggleEditMode() {
     isEditMode = !isEditMode;
     document.body.classList.toggle('edit-mode', isEditMode);
-    const toolbar = document.getElementById('editToolbar');
+    const toolbar = document.getElementById('editOnlyArea');
     const btn = document.getElementById('editToggleBtn');
 
     if (isEditMode) {
-        toolbar.classList.add('active');
+        toolbar.style.display = 'flex';
         btn.style.display = 'none';
 
         // 👁 섹션 숨기기 버튼 표시
@@ -1211,7 +1226,7 @@ function toggleEditMode() {
         initPlaceholders();
         
     } else {
-        toolbar.classList.remove('active');
+        toolbar.style.display = 'none';
         btn.style.display = 'block';
 
         // 편집 UI 숨기기
@@ -1459,7 +1474,7 @@ function openPreview() {
     const clone = document.documentElement.cloneNode(true);
 
     // 편집 전용 요소 제거
-    ['editToolbar','editToggleBtn','saveToast','syncNotice',
+    ['mainToolbar','editToggleBtn','jsonImportInput','saveToast','syncNotice',
      'scrollTopBtn','tt-add-day-wrap','ttDetailModal',
      'saveNameModal','loadModal','emojiModal','guideModal','previewModal',
      'faqPresetModal','add-notice-card-wrap','btnAddFaq','btnFaqPreset','btnAddContact'
@@ -1509,6 +1524,77 @@ function openPreview() {
 
 function closePreview() {
     document.getElementById('previewModal').style.display = 'none';
+}
+
+// ── JSON 내보내기 / 불러오기 ──
+function exportJSON() {
+    const data = collectCurrentData();
+    const title = document.getElementById('courseTitle')?.textContent.trim().replace(/[^a-zA-Z0-9가-힣]/g,'_') || '과정안내문';
+    const now = new Date();
+    const dt = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `(편집기백업)${title}_${dt}.json`;
+    a.click();
+    showToast('📤 JSON 내보내기 완료');
+}
+
+function importJSON() {
+    document.getElementById('jsonImportInput').click();
+}
+
+function handleJSONImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!confirm(`"${file.name}" 파일을 불러올까요?\n현재 작업 내용이 교체됩니다.`)) {
+        e.target.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            // EDITABLE_IDS 복원
+            EDITABLE_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && data[id] !== undefined) el.innerHTML = data[id];
+            });
+            if (data['ttDays']) { try { ttDays = JSON.parse(data['ttDays']); activeDayIdx = data['activeDayIdx'] || 0; } catch(e) {} }
+            if (data['ttColVisible']) { try { Object.assign(ttColVisible, JSON.parse(data['ttColVisible'])); } catch(e) {} }
+            if (data['noticeCards']) { try { noticeCards = JSON.parse(data['noticeCards']); } catch(e) {} }
+            if (data['contactCards']) { try { contactCards = JSON.parse(data['contactCards']); } catch(e) {} }
+            if (data['faqList']) { document.getElementById('faqList').innerHTML = data['faqList']; initFaqEvents(); }
+            if (data['surveyLink']) { document.getElementById('surveyLinkVal').value = data['surveyLink']; updateSurveyBtn(); }
+            if (data['headerBg']) { const h = document.querySelector('header'); if (h) h.style.background = data['headerBg']; }
+            if (data['_sections']) {
+                TOGGLE_IDS.forEach(sid => {
+                    const el = document.getElementById(sid);
+                    if (!el) return;
+                    const hidden = data['_sections'][sid] === true;
+                    el.classList.toggle('sec-hidden', hidden);
+                    const btn = el.querySelector('.section-vis-btn');
+                    if (btn) btn.textContent = hidden ? '🚫' : '👁';
+                    if (sid === 'drawer-btn-section') {
+                        const tabBtn = document.getElementById('tabDrawerBtn');
+                        if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+                    }
+                });
+            }
+            syncAll();
+            renderTtTabs();
+            renderTtPanel(activeDayIdx);
+            renderNoticeCards();
+            renderContactCards();
+            if (isEditMode) { enableTableEdit(true); applyNoticeCardEditMode(); applyContactCardEditMode(); }
+            else restorePlaceholders();
+            showToast(`📥 "${file.name}" 불러오기 완료`);
+        } catch(err) {
+            alert('JSON 파일을 읽는 중 오류가 발생했습니다.\n' + err.message);
+        }
+        e.target.value = '';
+    };
+    reader.readAsText(file, 'utf-8');
 }
 
 // ── 시작 가이드 팝업 ──
@@ -2240,7 +2326,7 @@ function downloadHTML() {
     document.getElementById('surveyLinkInput')?.style && (document.getElementById('surveyLinkInput').style.display = 'none');
 
     // 편집 전용 요소 완전 제거 (다운로드 파일에서)
-    ['editToolbar','editToggleBtn','saveToast','syncNotice',
+    ['mainToolbar','editToggleBtn','jsonImportInput','saveToast','syncNotice',
      'scrollTopBtn','tt-add-day-wrap','ttDetailModal',
      'saveNameModal','loadModal','emojiModal','headerOverlay'
     ].forEach(id => { document.getElementById(id)?.remove(); });
@@ -2376,7 +2462,8 @@ function bindButtons() {
         ['editExitBtn',   toggleEditMode],
         ['tbSaveBtn',     saveToStorage],
         ['tbDownloadBtn', downloadHTML],
-        ['tbPreviewBtn',  openPreview],
+        ['tbExportBtn', exportJSON],
+        ['tbImportBtn', importJSON],
         ['previewCloseBtn', closePreview],
         ['tbLoadBtn',     openLoadModal],
         ['drawerCloseBtn', closeDrawer],
@@ -2400,6 +2487,9 @@ function bindButtons() {
 
 function initPage() {
     bindButtons();
+    // JSON import input 이벤트
+    document.getElementById('jsonImportInput')?.addEventListener('change', handleJSONImport);
+
     loadFromStorage();
     syncAll();
     renderTtTabs();
