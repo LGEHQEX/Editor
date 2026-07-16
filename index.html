@@ -684,7 +684,8 @@
 </section>
 
 <!-- ── 교육참가 확인서 ── -->
-<section class="map-section" id="confirmation">
+<section class="map-section section-toggle-wrap" id="confirmation" style="position:relative;">
+    <button class="section-vis-btn" onclick="toggleSectionVis('confirmation')" title="숨기기/보이기">👁</button>
     <div class="section">
         <div class="section-header">
             <div class="section-tag">Confirmation</div>
@@ -1104,7 +1105,7 @@ function delDay(e, idx) {
 }
 
 // ── 섹션 토글 ──
-const TOGGLE_IDS = ['notice-tt-section','survey-card-section','bus-section-wrap','bus2-section-wrap','faq','drawer-btn-section'];
+const TOGGLE_IDS = ['notice-tt-section','survey-card-section','bus-section-wrap','bus2-section-wrap','faq','drawer-btn-section','confirmation'];
 
 function toggleSectionVis(sectionId) {
     const el = document.getElementById(sectionId);
@@ -1117,6 +1118,14 @@ function toggleSectionVis(sectionId) {
     // 러닝센터 생활안내 숨김 시 탭바 항목도 연동
     if (sectionId === 'drawer-btn-section') {
         const tabBtn = document.getElementById('tabDrawerBtn');
+        if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+    }
+    if (sectionId === 'confirmation') {
+        const tabBtn = document.querySelector('a[href="#confirmation"]');
+        if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+    }
+    if (sectionId === 'faq') {
+        const tabBtn = document.querySelector('a[href="#faq"]');
         if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
     }
 }
@@ -1615,6 +1624,14 @@ function applyJsonPaste() {
                     const tabBtn = document.getElementById('tabDrawerBtn');
                     if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
                 }
+                if (sid === 'confirmation') {
+                    const tabBtn = document.querySelector('a[href="#confirmation"]');
+                    if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+                }
+                if (sid === 'faq') {
+                    const tabBtn = document.querySelector('a[href="#faq"]');
+                    if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+                }
             });
         }
         syncAll();
@@ -1834,6 +1851,14 @@ function loadSlot(key) {
                 if (btn) btn.textContent = hidden ? '🚫' : '👁';
                 if (sid === 'drawer-btn-section') {
                     const tabBtn = document.getElementById('tabDrawerBtn');
+                    if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+                }
+                if (sid === 'confirmation') {
+                    const tabBtn = document.querySelector('a[href="#confirmation"]');
+                    if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
+                }
+                if (sid === 'faq') {
+                    const tabBtn = document.querySelector('a[href="#faq"]');
                     if (tabBtn) tabBtn.style.display = hidden ? 'none' : '';
                 }
             });
